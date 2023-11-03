@@ -1,0 +1,23 @@
+#!/bin/sh
+#PBS -N tree
+#PBS -j eo
+#PBS -q Blade
+#PBS -l nodes=1:ppn=20
+##PBS -l nodes=node1:ppn=20+node2:ppn=20+node5:ppn=20+node9:ppn=20+node7:ppn=20
+cd /Parastor300s_G30S/sunxh/MTB/vcf2
+for file in *.recode.vcf
+do
+/Parastor300s_G30S/sunxh/software2/htslib-1.14/bgzip -c ./${file} --threads 40 > ./${file}.gz
+/Parastor300s_G30S/sunxh/software2/htslib-1.14/tabix -f ./${file}.gz
+done
+bcftools merge *.vcf.gz -0 >all.vcf 
+/Parastor300s_G30S/sunxh/software/vcf2phylip/vcf2phylip.py -i ./all.vcf -f 
+rm *gz *tbi
+mkdir tree
+sed 's/\.mdup\.sort\.bam//g'  all.min4.phy > ./tree/all.phy
+EOF
+cd ./tree
+java -jar /Parastor300s_G30S/sunxh/software/jmodeltest2/dist/jModelTest.jar -d ./all.phy -o ./jmodel_results.txt -BIC -AIC -DT -a -tr 20 -s 11 -i -g 4 -f
+EOF
+/Parastor300s_G30S/sunxh/software/phyml3-new-mpi/sxh_configure/bin/phyml-mpi -i ./all.phy -d nt -n 1 -b 0 --run_id TVM -m 012314 -f m -c 1 --no_memory_check --r_seed 12345 -o tlr -s BEST
+#mpirun -np 100 --hostfile $PBS_NODEFILE --mca btl_openib_allow_ib 1 --bind-to core:overload-allowed /home/sunxh/software/phyml3-new-mpi/sxh_configure/bin/phyml-mpi -i ./all.phy -d nt -n 1 -b 1000 --run_id TVM_2 -m 012314 -f m -c 1 --no_memory_check --r_seed 12345 -o tlr -s BEST
